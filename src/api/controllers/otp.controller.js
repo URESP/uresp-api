@@ -1,5 +1,6 @@
 var otpGenerator = require('otp-generator');
 const User = require('../models/user.model');
+const Audit = require('../models/audit.model');
 
 exports.generateOtp = async (req, res, next) => {
   try {
@@ -9,6 +10,15 @@ exports.generateOtp = async (req, res, next) => {
 
     return res.send({ otp });
   } catch (err) {
+  	 const audit = new Audit({
+        user: req.user || null,
+        entity: "OTP",
+        apiPath: "",
+        errorType: "Error while Generating OTP",
+        errorMessage: err.message || httpStatus[err.status],
+        stackTrace: err.stack
+      })
+    await audit.save()
     return next(err);
   }
 }

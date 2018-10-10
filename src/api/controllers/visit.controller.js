@@ -5,6 +5,7 @@ const User = require('../models/user.model');
 const Property = require('../models/property.model');
 const { handler: errorHandler } = require('../middlewares/error');
 const mongoose = require('mongoose');
+const Audit = require('../models/audit.model');
 // const Nexmo = require('nexmo');
 // const nexmo = new Nexmo({
 //   apiKey: "f4f31936",
@@ -106,9 +107,18 @@ exports.create = async (req, res, next) => {
     await sendSmsNotifToOwner(owner,property,req.body.from,req.body.to)
     res.status(httpStatus.CREATED);
     res.json(savedVisit);
-  } catch (error) {
-  	console.log("catch in create in controller >>>>",error)
-    next(error);
+  } catch (err) {
+  	console.log("catch in create in controller >>>>",err)
+     const audit = new Audit({
+        user: req.user || null,
+        entity: "VISIT",
+        apiPath: "",
+        errorType: "Error while Creating VISIT",
+        errorMessage: err.message || httpStatus[err.status],
+        stackTrace: err.stack
+      })
+      await audit.save()
+    next(err);
   }
 };
 
@@ -117,8 +127,17 @@ exports.list = async (req, res, next) => {
   	let visits = await Visit.list(req.query)
   	console.log("visits>>>>>>>>",visits)
   	res.status(200).json(visits)
-  } catch (error) {
-  	console.log("error >>>>>>",error)
-    next(error);
+  } catch (err) {
+  	console.log("error >>>>>>",err)
+    const audit = new Audit({
+        user: req.user || null,
+        entity: "VISIT",
+        apiPath: "",
+        errorType: "Error while Creating VISIT",
+        errorMessage: err.message || httpStatus[err.status],
+        stackTrace: err.stack
+      })
+      await audit.save()
+    next(err);
   }
 };

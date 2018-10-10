@@ -6,6 +6,7 @@ const visitRoutes = require('./visits.route');
 const BookingRoutes = require('./booking.route');
 const verificationRoutes = require('./verify.route');
 const generationRoutes = require('./generate.route');
+const auditRoutes = require('./audit.route');
 
 const router = express.Router();
 
@@ -26,5 +27,6 @@ router.use('/verify', verificationRoutes);
 router.use('/generate', generationRoutes);
 router.use('/visits', visitRoutes);
 router.use('/bookings', BookingRoutes);
+router.use('/audits', auditRoutes);
 
 module.exports = router;

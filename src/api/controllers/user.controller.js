@@ -2,7 +2,7 @@ const httpStatus = require('http-status');
 const { omit } = require('lodash');
 const User = require('../models/user.model');
 const { handler: errorHandler } = require('../middlewares/error');
-
+const Audit = require('../models/audit.model');
 /**
  * Load user and append to req.
  * @public
@@ -12,8 +12,17 @@ const { handler: errorHandler } = require('../middlewares/error');
       const user = await User.get(id);
       req.locals = { user };
       return next();
-    } catch (error) {
-      return errorHandler(error, req, res);
+    } catch (err) {
+      const audit = new Audit({
+        user: req.user || null,
+        entity: "USER",
+        apiPath: "",
+        errorType: "Error while loading User",
+        errorMessage: err.message || httpStatus[err.status],
+        stackTrace: err.stack
+      })
+      await audit.save()
+      return errorHandler(err, req, res);
     }
   };
 
@@ -39,8 +48,17 @@ exports.create = async (req, res, next) => {
     const savedUser = await user.save();
     res.status(httpStatus.CREATED);
     res.json(savedUser.transform());
-  } catch (error) {
-    next(User.checkDuplicateEmail(error));
+  } catch (err) {
+    const audit = new Audit({
+        user: req.user || null,
+        entity: "USER",
+        apiPath: "",
+        errorType: "Error while Creating User",
+        errorMessage: err.message || httpStatus[err.status],
+        stackTrace: err.stack
+      })
+      await audit.save()
+    next(User.checkDuplicateEmail(err));
   }
 };
 
@@ -59,8 +77,17 @@ exports.replace = async (req, res, next) => {
     const savedUser = await User.findById(user._id);
 
     res.json(savedUser.transform());
-  } catch (error) {
-    next(User.checkDuplicateEmail(error));
+  } catch (err) {
+    const audit = new Audit({
+        user: req.user || null,
+        entity: "USER",
+        apiPath: "",
+        errorType: "Error while replacing User",
+        errorMessage: err.message || httpStatus[err.status],
+        stackTrace: err.stack
+      })
+      await audit.save()
+    next(User.checkDuplicateEmail(err));
   }
 };
 
@@ -75,7 +102,18 @@ exports.update = (req, res, next) => {
 
   user.save()
     .then(savedUser => res.json(savedUser.transform()))
-    .catch(e => next(User.checkDuplicateEmail(e)));
+    .catch(async (err) => {
+      const audit = new Audit({
+        user: req.user || null,
+        entity: "USER",
+        apiPath: "",
+        errorType: "Error while updating User",
+        errorMessage: err.message || httpStatus[err.status],
+        stackTrace: err.stack
+      })
+      await audit.save()
+     next(User.checkDuplicateEmail(err)) 
+    });
 };
 
 /**
@@ -87,8 +125,17 @@ exports.list = async (req, res, next) => {
     const users = await User.list(req.query);
     const transformedUsers = users.map(user => user.transform());
     res.json(transformedUsers);
-  } catch (error) {
-    next(error);
+  } catch (err) {
+    const audit = new Audit({
+        user: req.user || null,
+        entity: "USER",
+        apiPath: "",
+        errorType: "Error while listing User",
+        errorMessage: err.message || httpStatus[err.status],
+        stackTrace: err.stack
+      })
+      await audit.save()
+    next(err);
   }
 };
 
@@ -101,5 +148,16 @@ exports.remove = (req, res, next) => {
 
   user.remove()
     .then(() => res.status(httpStatus.NO_CONTENT).end())
-    .catch(e => next(e));
+    .catch(async(err) => {
+      const audit = new Audit({
+        user: req.user || null,
+        entity: "USER",
+        apiPath: "",
+        errorType: "Error while Removing User",
+        errorMessage: err.message || httpStatus[err.status],
+        stackTrace: err.stack
+      })
+      await audit.save()
+     next(err) 
+    });
 };

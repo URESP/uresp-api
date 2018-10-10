@@ -5,7 +5,7 @@ const moment = require('moment-timezone');
 const { jwtExpirationInterval } = require('../../config/vars');
 const { sendVerificationEmail } = require('./verification.controller');
 const { sendVerificationMail, sendVerificationSms } = require('../../config/vars');
-
+const Audit = require('../models/audit.model');
 /**
 * Returns a formated object with tokens
 * @private
@@ -33,8 +33,17 @@ exports.register = async (req, res, next) => {
       sendVerificationEmail(user.uuid, { to: userTransformed.email });
     }
     return res.json({ token, user: userTransformed });
-  } catch (error) {
-    return next(User.checkDuplicateEmail(error));
+  } catch (err) {
+    const audit = new Audit({
+        user: req.user || null,
+        entity: "AUTH",
+        apiPath: "",
+        errorType: "Error while Registering User",
+        errorMessage: err.message || httpStatus[err.status],
+        stackTrace: err.stack
+      })
+    await audit.save()
+    return next(User.checkDuplicateEmail(err));
   }
 };
 
@@ -48,8 +57,17 @@ exports.login = async (req, res, next) => {
     const token = generateTokenResponse(user, accessToken);
     const userTransformed = user.transform();
     return res.json({ token, user: userTransformed });
-  } catch (error) {
-    return next(error);
+  } catch (err) {
+    const audit = new Audit({
+        user: req.user || null,
+        entity: "AUTH",
+        apiPath: "",
+        errorType: "Error while logging User In",
+        errorMessage: err.message || httpStatus[err.status],
+        stackTrace: err.stack
+      })
+    await audit.save()
+    return next(err);
   }
 };
 
@@ -66,8 +84,17 @@ exports.oAuth = async (req, res, next) => {
     const token = generateTokenResponse(user, accessToken);
     const userTransformed = user.transform();
     return res.json({ token, user: userTransformed });
-  } catch (error) {
-    return next(error);
+  } catch (err) {
+    const audit = new Audit({
+        user: req.user || null,
+        entity: "AUTH",
+        apiPath: "",
+        errorType: "Error while OAuth",
+        errorMessage: err.message || httpStatus[err.status],
+        stackTrace: err.stack
+      })
+    await audit.save()
+    return next(err);
   }
 };
 
@@ -85,7 +112,16 @@ exports.refresh = async (req, res, next) => {
     const { user, accessToken } = await User.findAndGenerateToken({ email, refreshObject });
     const response = generateTokenResponse(user, accessToken);
     return res.json(response);
-  } catch (error) {
-    return next(error);
+  } catch (err) {
+    const audit = new Audit({
+        user: req.user || null,
+        entity: "AUTH",
+        apiPath: "",
+        errorType: "Error while refreshing Token",
+        errorMessage: err.message || httpStatus[err.status],
+        stackTrace: err.stack
+      })
+    await audit.save()
+    return next(err);
   }
 };

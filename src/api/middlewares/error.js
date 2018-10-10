@@ -2,12 +2,15 @@ const httpStatus = require('http-status');
 const expressValidation = require('express-validation');
 const APIError = require('../utils/APIError');
 const { env } = require('../../config/vars');
-
+ 
 /**
  * Error handler. Send stacktrace only during development
  * @public
  */
+
+
 const handler = (err, req, res, next) => {
+  
   const response = {
     code: err.status,
     message: err.message || httpStatus[err.status],
